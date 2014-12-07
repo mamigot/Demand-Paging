@@ -4,13 +4,15 @@ public class Process {
 	private int ID;
 	private int size;
 	
+	private JobMixProbability jobMix;
 	private int remainingReferences;
 	private int currentWord;
 	
-	public Process(int ID, int size){
+	public Process(int ID, int size, JobMixProbability jobMix){
 		this.ID = ID;
 		this.size = size;
 		
+		this.jobMix = jobMix;
 		this.remainingReferences = 0;
 		this.currentWord = 0;
 	}

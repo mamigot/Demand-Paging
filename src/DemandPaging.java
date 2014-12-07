@@ -17,18 +17,18 @@ public final class DemandPaging {
 	public int machineSize;
 	public int pageSize;
 	public int processSize;
-	public int jobMix;
+	public int jobMixNumber;
 	public int refsPerProcess;
 
 	public DemandPaging(ReplacementAlgorithm algo, int machineSize,
-			int pageSize, int processSize, int jobMix, int refsPerProcess)
+			int pageSize, int processSize, int jobMixNumber, int refsPerProcess)
 			throws FileNotFoundException {
 
 		this.algo = algo;
 		this.machineSize = machineSize;
 		this.pageSize = pageSize;
 		this.processSize = processSize;
-		this.jobMix = jobMix;
+		this.jobMixNumber = jobMixNumber;
 		this.refsPerProcess = refsPerProcess;
 
 		DemandPaging.scanner = new Scanner(new File(
@@ -37,7 +37,7 @@ public final class DemandPaging {
 	}
 
 	public static int getRand() {
-		while (DemandPaging.scanner.hasNextInt())
+		if (DemandPaging.scanner.hasNextInt())
 			return DemandPaging.scanner.nextInt();
 
 		return 0;
@@ -49,11 +49,11 @@ public final class DemandPaging {
 		int machineSize = 1;
 		int pageSize = 1;
 		int processSize = 1;
-		int jobMix = 1;
+		int jobMixNumber = 1;
 		int refsPerProcess = 1;
 
 		try {
-			new DemandPaging(algo, machineSize, pageSize, processSize, jobMix,
+			new DemandPaging(algo, machineSize, pageSize, processSize, jobMixNumber,
 					refsPerProcess);
 
 		} catch (FileNotFoundException e) {
