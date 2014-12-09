@@ -14,6 +14,10 @@ public class Frame {
 		this.pageNumber = 0;
 	}
 
+	public boolean equals(Frame that) {
+		return this.ID == that.ID;
+	}
+
 	public int getID() {
 		return this.ID;
 	}

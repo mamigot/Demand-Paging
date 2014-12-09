@@ -1,8 +1,6 @@
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.ArrayList;
 import java.util.LinkedList;
-import java.util.Queue;
 import java.util.Scanner;
 
 public final class DemandPaging {
@@ -23,10 +21,12 @@ public final class DemandPaging {
 	private int jobMixNumber;
 	private int refsPerProcess;
 
-	private Queue<Process> processes;
-	private Queue<Frame> frames;
+	private LinkedList<Process> processes;
+	private LinkedList<Frame> frames;
 	private int countAvailablePages;
 
+	private int sysClock = 1;
+	
 	public DemandPaging(ReplacementAlgorithm algo, int machineSize,
 			int pageSize, int processSize, int jobMixNumber, int refsPerProcess)
 			throws FileNotFoundException {
@@ -119,44 +119,46 @@ public final class DemandPaging {
 
 	}
 
-	private void placementFrameTable(int processID, int pageNumber)
-			throws UnsupportedOperationException {
+	private void framePlacement(int processID, int pageNumber) {
 		// Assuming there is room in the frame table (hence the
 		// unsupportedoperationexception), it places a page corresponding to a
 		// process ID and characterized by a given number in the frame table. If
 		// successful, returns the frame number
+		// Convention: place in highest-numbered free frame
 
 		if (this.countAvailablePages <= 0)
 			throw new UnsupportedOperationException(
 					"Placement question is only relevant if there are free pages in the frame table.");
 
+		Frame highest = this.frames.peek();
+		for (Frame f : this.frames)
+			if (f.getID() > highest.getID())
+				highest = f;
+
+		highest.fill(processID, pageNumber);
+		this.frames.remove(highest);
+
+		if (this.replacementAlgorithm.equals(ReplacementAlgorithm.LRU))
+			this.frames.addLast(highest);
+
 	}
 
-	private void replacementFrameTable(int processID, int pageNumber) {
+	private void frameReplacement(int processID, int pageNumber) {
 		// Uses the replacement algorithm in this.replacementAlgorithm to
 		// dispatch to any relevant method, and puts the page corresponding to
 		// the arguments in the frame table
 
-		if (this.replacementAlgorithm.equals(ReplacementAlgorithm.LRU))
-			replacementFrameTableLRU(processID, pageNumber);
+		if (this.countAvailablePages > 0)
+			throw new UnsupportedOperationException(
+					"No replacement needed if there are free spots available!");
 
-		else if (this.replacementAlgorithm.equals(ReplacementAlgorithm.FIFO))
-			replacementFrameTableFIFO(processID, pageNumber);
+		Frame frame;
+		if (this.replacementAlgorithm.equals(ReplacementAlgorithm.LRU)) {
+			frame = this.frames.removeFirst();
+			frame.fill(processID, pageNumber);
 
-		else if (this.replacementAlgorithm.equals(ReplacementAlgorithm.RANDOM))
-			replacementFrameTableRANDOM(processID, pageNumber);
-
-	}
-
-	private void replacementFrameTableFIFO(int processID, int pageNumber) {
-
-	}
-
-	private void replacementFrameTableRANDOM(int processID, int pageNumber) {
-
-	}
-
-	private void replacementFrameTableLRU(int processID, int pageNumber) {
+			this.frames.addLast(frame);
+		}
 
 	}
 
@@ -193,16 +195,48 @@ public final class DemandPaging {
 	private void launchSimulation() {
 		// After processes and frames have been created, launch the simulation
 
+		int totRefs = this.processes.size() * this.refsPerProcess;
+
+		int index;
+		int word;
+		int page;
+		Process proc;
+		for (int i = 0; i < totRefs; i++) {
+
+			index = i % this.processes.size();
+			proc = this.processes.get(index);
+			word = proc.getCurrentWord();
+			
+			for (int ref = 0; (ref < DemandPaging.RR_QUANTUM)
+					&& (!proc.isFinished()); ref++) {
+				// Simulate the reference for this process (USE word)
+				// Calculate the next reference for this process
+				
+				// map the word to a page number
+				page = 0;
+				System.out.println(this.processes.get(index).getID() + " references word " + word);
+				
+				
+				
+				word = this.getNextWord(proc, word);
+				proc.setCurrentWord(word);
+				proc.decrementRefs();
+				
+				this.sysClock++;
+			}
+
+		}
+
 	}
 
 	public static void main(String[] args) {
 
 		ReplacementAlgorithm algo = ReplacementAlgorithm.LRU;
-		int machineSize = 1;
-		int pageSize = 1;
-		int processSize = 1;
-		int jobMixNumber = 1;
-		int refsPerProcess = 1;
+		int machineSize = 10;
+		int pageSize = 10;
+		int processSize = 10;
+		int jobMixNumber = 2;
+		int refsPerProcess = 10;
 
 		try {
 			new DemandPaging(algo, machineSize, pageSize, processSize,
