@@ -10,12 +10,12 @@ public class Process {
 	private int countPageFaults;
 	private int runningSumPageResidencyTime;
 
-	public Process(int ID, int size, JobMixProbability jobMix) {
+	public Process(int ID, int size, int totRefs, JobMixProbability jobMix) {
 		this.ID = ID;
 		this.size = size;
 		this.jobMix = jobMix;
 
-		this.remainingReferences = 0;
+		this.remainingReferences = totRefs;
 		this.currentWord = 0;
 
 		this.countPageFaults = 0;

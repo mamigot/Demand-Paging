@@ -1,24 +1,24 @@
 public class JobMixProbability {
 
-	private int A;
-	private int B;
-	private int C;
+	private double A;
+	private double B;
+	private double C;
 
-	public JobMixProbability(int A, int B, int C) {
+	public JobMixProbability(double A, double B, double C) {
 		this.A = A;
 		this.B = B;
 		this.C = C;
 	}
 
-	public int getA() {
+	public double getA() {
 		return this.A;
 	}
 
-	public int getB() {
+	public double getB() {
 		return this.B;
 	}
 
-	public int getC() {
+	public double getC() {
 		return this.C;
 	}
 

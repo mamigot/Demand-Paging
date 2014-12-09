@@ -1,11 +1,21 @@
 public class Frame {
 
+	private int ID;
+	private boolean isOccupied;
+
 	private int processID;
 	private int pageNumber;
 
-	public Frame() {
+	public Frame(int ID) {
+		this.ID = ID;
+		this.isOccupied = false;
+
 		this.processID = 0;
 		this.pageNumber = 0;
+	}
+
+	public int getID() {
+		return this.ID;
 	}
 
 	public int getProcessID() {
@@ -16,12 +26,20 @@ public class Frame {
 		return this.pageNumber;
 	}
 
-	public void setProcessID(int ID) {
-		this.processID = ID;
+	public boolean isOccupied() {
+		return this.isOccupied;
 	}
 
-	public void setPageNumber(int page) {
-		this.pageNumber = page;
+	public void fill(int processID, int pageNumber) {
+		this.processID = processID;
+		this.pageNumber = pageNumber;
+		this.isOccupied = true;
+	}
+
+	public void free() {
+		this.processID = 0;
+		this.pageNumber = 0;
+		this.isOccupied = false;
 	}
 
 }
