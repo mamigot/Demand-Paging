@@ -1,3 +1,5 @@
+package main;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.LinkedList;
@@ -5,7 +7,7 @@ import java.util.Scanner;
 
 public final class DemandPaging {
 
-	private enum ReplacementAlgorithm {
+	public enum ReplacementAlgorithm {
 		FIFO, RANDOM, LRU
 	}
 
@@ -26,7 +28,7 @@ public final class DemandPaging {
 	private int countAvailablePages;
 
 	private int sysClock = 1;
-	
+
 	public DemandPaging(ReplacementAlgorithm algo, int machineSize,
 			int pageSize, int processSize, int jobMixNumber, int refsPerProcess)
 			throws FileNotFoundException {
@@ -112,17 +114,19 @@ public final class DemandPaging {
 
 		for (Frame f : this.frames)
 			if (f.getProcessID() == processID
-					&& f.getPageNumber() == pageNumber)
+					&& f.getPageNumber() == pageNumber) {
+				System.out.println("\t hit in frame " + f.getID());
 				return true;
+			}
 
 		return false;
 
 	}
 
 	private void framePlacement(int processID, int pageNumber) {
-		// Assuming there is room in the frame table (hence the
-		// unsupportedoperationexception), it places a page corresponding to a
-		// process ID and characterized by a given number in the frame table. If
+		// Assuming there is room in the frame table, it places a page
+		// corresponding to a process ID and characterized by a given number in
+		// the frame table. If
 		// successful, returns the frame number
 		// Convention: place in highest-numbered free frame
 
@@ -132,14 +136,17 @@ public final class DemandPaging {
 
 		Frame highest = this.frames.peek();
 		for (Frame f : this.frames)
-			if (f.getID() > highest.getID())
+			if (!f.isOccupied() && (f.getID() > highest.getID()))
 				highest = f;
 
 		highest.fill(processID, pageNumber);
 		this.frames.remove(highest);
+		this.countAvailablePages--;
 
 		if (this.replacementAlgorithm.equals(ReplacementAlgorithm.LRU))
 			this.frames.addLast(highest);
+
+		System.out.println("\t using free frame " + highest.getID());
 
 	}
 
@@ -155,6 +162,9 @@ public final class DemandPaging {
 		Frame frame;
 		if (this.replacementAlgorithm.equals(ReplacementAlgorithm.LRU)) {
 			frame = this.frames.removeFirst();
+
+			System.out.println("\t eviction in frame " + frame.getID());
+
 			frame.fill(processID, pageNumber);
 
 			this.frames.addLast(frame);
@@ -197,52 +207,61 @@ public final class DemandPaging {
 
 		int totRefs = this.processes.size() * this.refsPerProcess;
 
-		int index;
 		int word;
 		int page;
 		Process proc;
 		for (int i = 0; i < totRefs; i++) {
 
-			index = i % this.processes.size();
-			proc = this.processes.get(index);
+			proc = this.processes.get(i % this.processes.size());
 			word = proc.getCurrentWord();
-			
+
 			for (int ref = 0; (ref < DemandPaging.RR_QUANTUM)
 					&& (!proc.isFinished()); ref++) {
 				// Simulate the reference for this process (USE word)
 				// Calculate the next reference for this process
-				
+
 				// map the word to a page number
-				page = 0;
-				System.out.println(this.processes.get(index).getID() + " references word " + word);
-				
-				
-				
+				page = word / this.pageSize;
+				System.out.println(proc.getID() + " references word " + word
+						+ " page (" + page + ")\tat time " + sysClock);
+
+				if (!this.isHit(proc.getID(), page)) {
+					if (this.countAvailablePages > 0)
+						this.framePlacement(proc.getID(), page);
+
+					else
+						this.frameReplacement(proc.getID(), page);
+
+					proc.incrementPageFaults();
+				}
+
 				word = this.getNextWord(proc, word);
 				proc.setCurrentWord(word);
 				proc.decrementRefs();
 				
 				this.sysClock++;
+				
+				if(sysClock == 35) // Debugging
+					System.exit(1);
 			}
-
 		}
+
+		for (Process p : this.processes)
+			System.out.println(p.getID() + ": " + p.getNumPageFaults());
 
 	}
 
 	public static void main(String[] args) {
 
-		ReplacementAlgorithm algo = ReplacementAlgorithm.LRU;
-		int machineSize = 10;
-		int pageSize = 10;
-		int processSize = 10;
-		int jobMixNumber = 2;
-		int refsPerProcess = 10;
-
 		try {
-			new DemandPaging(algo, machineSize, pageSize, processSize,
-					jobMixNumber, refsPerProcess);
+			tests.Test_LRU.run11();
+
+			// Error:
+			// 4 references word 22 page (2)
+			// eviction in frame 7 (SHOULD BE FRAME 6)
 
 		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 

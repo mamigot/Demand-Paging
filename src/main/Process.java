@@ -1,3 +1,4 @@
+package main;
 public class Process {
 
 	private int ID;
@@ -38,12 +39,12 @@ public class Process {
 		return this.size;
 	}
 
-	public int decrementRefs() {
-		return --this.remainingReferences;
+	public void decrementRefs() {
+		this.remainingReferences--;
 	}
 
-	public int incrementPageFaults() {
-		return ++this.countPageFaults;
+	public void incrementPageFaults() {
+		this.countPageFaults++;
 	}
 
 	public int getCurrentWord() {
