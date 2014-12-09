@@ -16,7 +16,7 @@ public final class DemandPaging {
 	private static String randomNumbersPath = "inputs/random-numbers.txt";
 	private static Scanner scanner;
 
-	private ReplacementAlgorithm replacementAlgorithm;
+	private ReplacementAlgorithm algo;
 	private int machineSize;
 	private int pageSize;
 	private int processSize;
@@ -33,7 +33,7 @@ public final class DemandPaging {
 			int pageSize, int processSize, int jobMixNumber, int refsPerProcess)
 			throws FileNotFoundException {
 
-		this.replacementAlgorithm = algo;
+		this.algo = algo;
 		this.machineSize = machineSize;
 		this.pageSize = pageSize;
 		this.processSize = processSize;
@@ -108,18 +108,21 @@ public final class DemandPaging {
 
 	}
 
-	private boolean isHit(int processID, int pageNumber) {
+	private Frame getHitFrame(int processID, int pageNumber) {
 		// Determines if the page corresponding to a given process and
 		// characterized by a given number is in the frame table
+		// if it is, it makes the proper modifications based on the replacement
+		// algorithm
 
 		for (Frame f : this.frames)
 			if (f.getProcessID() == processID
 					&& f.getPageNumber() == pageNumber) {
 				System.out.println("\t hit in frame " + f.getID());
-				return true;
+
+				return f;
 			}
 
-		return false;
+		return null;
 
 	}
 
@@ -143,7 +146,7 @@ public final class DemandPaging {
 		this.frames.remove(highest);
 		this.countAvailablePages--;
 
-		if (this.replacementAlgorithm.equals(ReplacementAlgorithm.LRU))
+		if (this.algo.equals(ReplacementAlgorithm.LRU))
 			this.frames.addLast(highest);
 
 		System.out.println("\t using free frame " + highest.getID());
@@ -160,14 +163,12 @@ public final class DemandPaging {
 					"No replacement needed if there are free spots available!");
 
 		Frame frame;
-		if (this.replacementAlgorithm.equals(ReplacementAlgorithm.LRU)) {
+		if (this.algo.equals(ReplacementAlgorithm.LRU)) {
 			frame = this.frames.removeFirst();
+			frame.fill(processID, pageNumber);
+			this.frames.addLast(frame);
 
 			System.out.println("\t eviction in frame " + frame.getID());
-
-			frame.fill(processID, pageNumber);
-
-			this.frames.addLast(frame);
 		}
 
 	}
@@ -209,6 +210,7 @@ public final class DemandPaging {
 
 		int word;
 		int page;
+		Frame frame;
 		Process proc;
 		for (int i = 0; i < totRefs; i++) {
 
@@ -222,10 +224,12 @@ public final class DemandPaging {
 
 				// map the word to a page number
 				page = word / this.pageSize;
+				frame = this.getHitFrame(proc.getID(), page);
+
 				System.out.println(proc.getID() + " references word " + word
 						+ " page (" + page + ")\tat time " + sysClock);
 
-				if (!this.isHit(proc.getID(), page)) {
+				if (frame == null) {
 					if (this.countAvailablePages > 0)
 						this.framePlacement(proc.getID(), page);
 
@@ -233,16 +237,21 @@ public final class DemandPaging {
 						this.frameReplacement(proc.getID(), page);
 
 					proc.incrementPageFaults();
+
+				} else {
+					// there was a hit; make the modification in the frame table
+					if (this.algo.equals(ReplacementAlgorithm.LRU)) {
+						this.frames.remove(frame);
+						this.frames.addLast(frame);
+					}
+
 				}
 
 				word = this.getNextWord(proc, word);
 				proc.setCurrentWord(word);
 				proc.decrementRefs();
-				
+
 				this.sysClock++;
-				
-				if(sysClock == 35) // Debugging
-					System.exit(1);
 			}
 		}
 
