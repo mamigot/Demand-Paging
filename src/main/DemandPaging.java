@@ -108,7 +108,7 @@ public final class DemandPaging {
 
 	}
 
-	private Frame getHitFrame(int processID, int pageNumber) {
+	private Frame isHit(int processID, int pageNumber) {
 		// Determines if the page corresponding to a given process and
 		// characterized by a given number is in the frame table
 		// if it is, it makes the proper modifications based on the replacement
@@ -146,7 +146,8 @@ public final class DemandPaging {
 		this.frames.remove(highest);
 		this.countAvailablePages--;
 
-		if (this.algo.equals(ReplacementAlgorithm.LRU))
+		if (this.algo.equals(ReplacementAlgorithm.LRU)
+				|| this.algo.equals(ReplacementAlgorithm.FIFO))
 			this.frames.addLast(highest);
 
 		System.out.println("\t using free frame " + highest.getID());
@@ -163,7 +164,8 @@ public final class DemandPaging {
 					"No replacement needed if there are free spots available!");
 
 		Frame frame;
-		if (this.algo.equals(ReplacementAlgorithm.LRU)) {
+		if (this.algo.equals(ReplacementAlgorithm.LRU)
+				|| this.algo.equals(ReplacementAlgorithm.FIFO)) {
 			frame = this.frames.removeFirst();
 			frame.fill(processID, pageNumber);
 			this.frames.addLast(frame);
@@ -224,7 +226,7 @@ public final class DemandPaging {
 
 				// map the word to a page number
 				page = word / this.pageSize;
-				frame = this.getHitFrame(proc.getID(), page);
+				frame = this.isHit(proc.getID(), page);
 
 				System.out.println(proc.getID() + " references word " + word
 						+ " page (" + page + ")\tat time " + sysClock);
@@ -243,8 +245,8 @@ public final class DemandPaging {
 					if (this.algo.equals(ReplacementAlgorithm.LRU)) {
 						this.frames.remove(frame);
 						this.frames.addLast(frame);
-					}
 
+					}
 				}
 
 				word = this.getNextWord(proc, word);
@@ -263,7 +265,7 @@ public final class DemandPaging {
 	public static void main(String[] args) {
 
 		try {
-			tests.Test_LRU.run11();
+			tests.Test_FIFO.run16();
 
 			// Error:
 			// 4 references word 22 page (2)
