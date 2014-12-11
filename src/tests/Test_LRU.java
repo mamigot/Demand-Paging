@@ -107,7 +107,7 @@ public class Test_LRU {
 	
 	public static void main(String[] args) throws FileNotFoundException {
 
-		run11();
+		run14();
 		
 	}
 
