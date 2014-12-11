@@ -16,12 +16,30 @@ public final class DemandPaging {
 	private static String randomNumbersPath = "inputs/random-numbers.txt";
 	private static Scanner scanner;
 
-	private ReplacementAlgorithm algo;
-	private int machineSize;
-	private int pageSize;
-	private int processSize;
-	private int jobMixNumber;
-	private int refsPerProcess;
+	/**
+	 * Replacement algorithm
+	 */
+	private ReplacementAlgorithm R;
+	/**
+	 * Machine size (in words)
+	 */
+	private int M;
+	/**
+	 * Page size (in words)
+	 */
+	private int P;
+	/**
+	 * Size of a process (references are to virtual addresses 0...S-1)
+	 */
+	private int S;
+	/**
+	 * Job mix (determines the simulation parameters for the processes)
+	 */
+	private int J;
+	/**
+	 * Number of references per process
+	 */
+	private int N;
 
 	private LinkedList<Process> processes;
 	private LinkedList<Frame> frames;
@@ -33,12 +51,12 @@ public final class DemandPaging {
 			int pageSize, int processSize, int jobMixNumber, int refsPerProcess)
 			throws FileNotFoundException {
 
-		this.algo = algo;
-		this.machineSize = machineSize;
-		this.pageSize = pageSize;
-		this.processSize = processSize;
-		this.jobMixNumber = jobMixNumber;
-		this.refsPerProcess = refsPerProcess;
+		this.R = algo;
+		this.M = machineSize;
+		this.P = pageSize;
+		this.S = processSize;
+		this.J = jobMixNumber;
+		this.N = refsPerProcess;
 
 		DemandPaging.scanner = new Scanner(new File(
 				DemandPaging.randomNumbersPath));
@@ -55,41 +73,37 @@ public final class DemandPaging {
 
 		this.processes = new LinkedList<Process>();
 
-		switch (this.jobMixNumber) {
+		switch (this.J) {
 		case 1:
-			this.processes.add(new Process(1, this.processSize,
-					this.refsPerProcess, new JobMixProbability(1, 0, 0)));
+			this.processes.add(new Process(1, this.S, this.N,
+					new JobMixProbability(1, 0, 0)));
 
 			break;
 
 		case 2:
 			for (int i = 1; i < 5; i++)
-				this.processes.add(new Process(i, this.processSize,
-						this.refsPerProcess, new JobMixProbability(1, 0, 0)));
+				this.processes.add(new Process(i, this.S, this.N,
+						new JobMixProbability(1, 0, 0)));
 
 			break;
 
 		case 3:
 			for (int i = 1; i < 5; i++)
-				this.processes.add(new Process(i, this.processSize,
-						this.refsPerProcess, new JobMixProbability(0, 0, 0)));
+				this.processes.add(new Process(i, this.S, this.N,
+						new JobMixProbability(0, 0, 0)));
 
 			break;
 
 		case 4:
-			this.processes.add(new Process(1, this.processSize,
-					this.refsPerProcess, new JobMixProbability(0.75, 0.25, 0)));
+			LinkedList<JobMixProbability> types = new LinkedList<JobMixProbability>();
+			types.add(new JobMixProbability(0.75, 0.25, 0));
+			types.add(new JobMixProbability(0.75, 0, 0.25));
+			types.add(new JobMixProbability(0.75, 0.125, 0.125));
+			types.add(new JobMixProbability(0.5, 0.125, 0.125));
 
-			this.processes.add(new Process(2, this.processSize,
-					this.refsPerProcess, new JobMixProbability(0.75, 0, 0.25)));
-
-			this.processes.add(new Process(3, this.processSize,
-					this.refsPerProcess, new JobMixProbability(0.75, 0.125,
-							0.125)));
-
-			this.processes.add(new Process(4, this.processSize,
-					this.refsPerProcess, new JobMixProbability(0.5, 0.125,
-							0.125)));
+			for (int i = 1; i < 5; i++)
+				this.processes.add(new Process(i, this.S, this.N, types
+						.get(i - 1)));
 
 			break;
 		}
@@ -101,9 +115,9 @@ public final class DemandPaging {
 		// puts them in this.frames
 
 		this.frames = new LinkedList<Frame>();
-		this.countAvailablePages = this.machineSize / this.pageSize;
+		this.countAvailablePages = this.M / this.P;
 
-		for (int i = 0; i < this.machineSize / this.pageSize; i++)
+		for (int i = 0; i < this.M / this.P; i++)
 			this.frames.add(new Frame(i));
 
 	}
@@ -116,11 +130,8 @@ public final class DemandPaging {
 
 		for (Frame f : this.frames)
 			if (f.getProcessID() == processID
-					&& f.getPageNumber() == pageNumber) {
-				System.out.println("\t hit in frame " + f.getID());
-
+					&& f.getPageNumber() == pageNumber)
 				return f;
-			}
 
 		return null;
 
@@ -142,13 +153,15 @@ public final class DemandPaging {
 			if (!f.isOccupied() && (f.getID() > highest.getID()))
 				highest = f;
 
-		highest.fill(processID, pageNumber);
-		this.frames.remove(highest);
-		this.countAvailablePages--;
-
-		if (this.algo.equals(ReplacementAlgorithm.LRU)
-				|| this.algo.equals(ReplacementAlgorithm.FIFO))
+		if (this.R.equals(ReplacementAlgorithm.LRU)
+				|| this.R.equals(ReplacementAlgorithm.FIFO)) {
+			this.frames.remove(highest);
 			this.frames.addLast(highest);
+		}
+
+		this.countAvailablePages--;
+		highest.fill(processID, pageNumber);
+		highest.logStartTime(this.sysClock);
 
 		System.out.println("\t using free frame " + highest.getID());
 
@@ -163,15 +176,32 @@ public final class DemandPaging {
 			throw new UnsupportedOperationException(
 					"No replacement needed if there are free spots available!");
 
-		Frame frame;
-		if (this.algo.equals(ReplacementAlgorithm.LRU)
-				|| this.algo.equals(ReplacementAlgorithm.FIFO)) {
+		Frame frame = null;
+		int evictedPID = 0;
+		if (this.R.equals(ReplacementAlgorithm.LRU)
+				|| this.R.equals(ReplacementAlgorithm.FIFO)) {
 			frame = this.frames.removeFirst();
+			evictedPID = frame.getProcessID();
+
 			frame.fill(processID, pageNumber);
 			this.frames.addLast(frame);
 
 			System.out.println("\t eviction in frame " + frame.getID());
+
+		} else if (this.R.equals(ReplacementAlgorithm.RANDOM)) {
+			int randIndex = DemandPaging.getRand() % this.frames.size();
+			frame = frames.get(randIndex);
+			evictedPID = frame.getProcessID();
+
+			frame.fill(processID, pageNumber);
 		}
+
+		int elapsedTime = frame.getTimeElapsed(this.sysClock);
+		frame.logStartTime(this.sysClock);
+
+		Process evicted = this.processes.get(evictedPID - 1);
+		evicted.logPageResidencyTime(elapsedTime);
+		evicted.incrementPageEvictions();
 
 	}
 
@@ -182,7 +212,7 @@ public final class DemandPaging {
 		double y = r / (Integer.MAX_VALUE + 1d);
 
 		JobMixProbability jm = proc.getJobMix();
-		int S = this.processSize;
+		int S = this.S;
 
 		if (y < jm.getA())
 			return (currWord + 1 + S) % S;
@@ -208,7 +238,7 @@ public final class DemandPaging {
 	private void launchSimulation() {
 		// After processes and frames have been created, launch the simulation
 
-		int totRefs = this.processes.size() * this.refsPerProcess;
+		int totRefs = this.processes.size() * this.N;
 
 		int word;
 		int page;
@@ -225,7 +255,7 @@ public final class DemandPaging {
 				// Calculate the next reference for this process
 
 				// map the word to a page number
-				page = word / this.pageSize;
+				page = word / this.P;
 				frame = this.isHit(proc.getID(), page);
 
 				System.out.println(proc.getID() + " references word " + word
@@ -242,7 +272,7 @@ public final class DemandPaging {
 
 				} else {
 					// there was a hit; make the modification in the frame table
-					if (this.algo.equals(ReplacementAlgorithm.LRU)) {
+					if (this.R.equals(ReplacementAlgorithm.LRU)) {
 						this.frames.remove(frame);
 						this.frames.addLast(frame);
 
@@ -257,15 +287,18 @@ public final class DemandPaging {
 			}
 		}
 
-		for (Process p : this.processes)
+		for (Process p : this.processes) {
 			System.out.println(p.getID() + ": " + p.getNumPageFaults());
+			System.out.println("\taverage residency: "
+					+ (p.getAvgResidencyTime()));
+		}
 
 	}
 
 	public static void main(String[] args) {
 
 		try {
-			tests.Test_FIFO.run16();
+			tests.Test_RANDOM.run15();
 
 			// Error:
 			// 4 references word 22 page (2)

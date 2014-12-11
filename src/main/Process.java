@@ -1,4 +1,5 @@
 package main;
+
 public class Process {
 
 	private int ID;
@@ -8,7 +9,8 @@ public class Process {
 	private int remainingReferences;
 	private int currentWord;
 
-	private int countPageFaults;
+	private int numPageFaults;
+	private int numEvictions;
 	private int runningSumPageResidencyTime;
 
 	public Process(int ID, int size, int totRefs, JobMixProbability jobMix) {
@@ -19,7 +21,8 @@ public class Process {
 		this.remainingReferences = totRefs;
 		this.currentWord = (111 * this.ID) % this.size; // Starting value
 
-		this.countPageFaults = 0;
+		this.numPageFaults = 0;
+		this.numEvictions = 0;
 		this.runningSumPageResidencyTime = 0;
 	}
 
@@ -39,14 +42,6 @@ public class Process {
 		return this.size;
 	}
 
-	public void decrementRefs() {
-		this.remainingReferences--;
-	}
-
-	public void incrementPageFaults() {
-		this.countPageFaults++;
-	}
-
 	public int getCurrentWord() {
 		return this.currentWord;
 	}
@@ -55,12 +50,28 @@ public class Process {
 		this.currentWord = word;
 	}
 
-	public int getNumPageFaults() {
-		return this.countPageFaults;
+	public void decrementRefs() {
+		this.remainingReferences--;
 	}
 
-	public int logPageResidencyTime(int pageResidencyTime) {
-		return this.runningSumPageResidencyTime += pageResidencyTime;
+	public void incrementPageFaults() {
+		this.numPageFaults++;
+	}
+
+	public int getNumPageFaults() {
+		return this.numPageFaults;
+	}
+
+	public void incrementPageEvictions() {
+		this.numEvictions++;
+	}
+
+	public void logPageResidencyTime(int pageResidencyTime) {
+		this.runningSumPageResidencyTime += pageResidencyTime;
+	}
+
+	public double getAvgResidencyTime() {
+		return this.runningSumPageResidencyTime / (this.numEvictions * 1.0);
 	}
 
 	public String toString() {
