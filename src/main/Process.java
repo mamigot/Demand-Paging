@@ -19,7 +19,7 @@ public class Process {
 		this.jobMix = jobMix;
 
 		this.remainingReferences = totRefs;
-		this.currentWord = (111 * this.ID) % this.size; // Starting value
+		this.currentWord = (111 * this.ID) % this.size;
 
 		this.numPageFaults = 0;
 		this.numEvictions = 0;
@@ -66,8 +66,16 @@ public class Process {
 		this.numEvictions++;
 	}
 
+	public int getNumEvictions() {
+		return this.numEvictions;
+	}
+
 	public void logPageResidencyTime(int pageResidencyTime) {
 		this.runningSumPageResidencyTime += pageResidencyTime;
+	}
+
+	public int getSumResidencyTime() {
+		return this.runningSumPageResidencyTime;
 	}
 
 	public double getAvgResidencyTime() {

@@ -57,6 +57,18 @@ public class Test_LRU {
 
 	}
 	
+	public static void run07() throws FileNotFoundException {
+
+		int M = 20;
+		int P = 10;
+		int S = 10;
+		int J = 3;
+		int N = 10;
+
+		new DemandPaging(algo, M, P, S, J, N);
+
+	}
+	
 	public static void run09() throws FileNotFoundException {
 
 		int M = 20;

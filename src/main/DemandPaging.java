@@ -5,14 +5,27 @@ import java.io.FileNotFoundException;
 import java.util.LinkedList;
 import java.util.Scanner;
 
+/**
+ * Simulates demand paging and reports relevant statistics for the replacement
+ * algorithms listed in {@link ReplacementAlgorithm} below
+ */
 public final class DemandPaging {
 
+	/**
+	 * Supported replacement algorithms
+	 */
 	public enum ReplacementAlgorithm {
 		FIFO, RANDOM, LRU
 	}
 
+	/**
+	 * Round-Robin quantum
+	 */
 	private static final int RR_QUANTUM = 3;
 
+	/**
+	 * Used to model random numbers
+	 */
 	private static String randomNumbersPath = "inputs/random-numbers.txt";
 	private static Scanner scanner;
 
@@ -41,10 +54,15 @@ public final class DemandPaging {
 	 */
 	private int N;
 
+	/**
+	 * Working processes and frames
+	 */
 	private LinkedList<Process> processes;
 	private LinkedList<Frame> frames;
-	private int countAvailablePages;
-
+	private int countAvailableFrames;
+	/**
+	 * Models the system clock
+	 */
 	private int sysClock = 1;
 
 	public DemandPaging(ReplacementAlgorithm algo, int machineSize,
@@ -64,12 +82,14 @@ public final class DemandPaging {
 		this.initializeProcesses();
 		this.initializeFrames();
 		this.launchSimulation();
+		this.printReport();
 
 	}
 
+	/**
+	 * Uses predefined job mix parameters to create relevant processes
+	 */
 	private void initializeProcesses() {
-		// Uses the jobmix number to create processes with certain
-		// jobmixprobabilities and places them in this.processes
 
 		this.processes = new LinkedList<Process>();
 
@@ -110,23 +130,24 @@ public final class DemandPaging {
 
 	}
 
+	/**
+	 * Uses the predefined machine and page size to create relevant frames
+	 */
 	private void initializeFrames() {
-		// Uses the machinesize, pagesize, etc. to create a number of frames and
-		// puts them in this.frames
 
 		this.frames = new LinkedList<Frame>();
-		this.countAvailablePages = this.M / this.P;
+		this.countAvailableFrames = this.M / this.P;
 
 		for (int i = 0; i < this.M / this.P; i++)
 			this.frames.add(new Frame(i));
 
 	}
 
+	/**
+	 * Determines if the page corresponding to a given process and number is in
+	 * memory (in a frame). If it is, the relevant frame is returned.
+	 */
 	private Frame isHit(int processID, int pageNumber) {
-		// Determines if the page corresponding to a given process and
-		// characterized by a given number is in the frame table
-		// if it is, it makes the proper modifications based on the replacement
-		// algorithm
 
 		for (Frame f : this.frames)
 			if (f.getProcessID() == processID
@@ -137,14 +158,14 @@ public final class DemandPaging {
 
 	}
 
+	/**
+	 * Places a given page (characterized by a processID and a page number) in
+	 * the highest numbered free frame. If there are no free frames, an
+	 * UnsupportedOperationException is thrown.
+	 */
 	private void framePlacement(int processID, int pageNumber) {
-		// Assuming there is room in the frame table, it places a page
-		// corresponding to a process ID and characterized by a given number in
-		// the frame table. If
-		// successful, returns the frame number
-		// Convention: place in highest-numbered free frame
 
-		if (this.countAvailablePages <= 0)
+		if (this.countAvailableFrames <= 0)
 			throw new UnsupportedOperationException(
 					"Placement question is only relevant if there are free pages in the frame table.");
 
@@ -159,20 +180,20 @@ public final class DemandPaging {
 			this.frames.addLast(highest);
 		}
 
-		this.countAvailablePages--;
+		this.countAvailableFrames--;
 		highest.fill(processID, pageNumber);
 		highest.logStartTime(this.sysClock);
 
-		System.out.println("\t using free frame " + highest.getID());
-
 	}
 
+	/**
+	 * Replaces a given page in the frame table with a new one (characterized by
+	 * a processID and a page number), according to the used replacement
+	 * algorithm ({@link this.R}).
+	 */
 	private void frameReplacement(int processID, int pageNumber) {
-		// Uses the replacement algorithm in this.replacementAlgorithm to
-		// dispatch to any relevant method, and puts the page corresponding to
-		// the arguments in the frame table
 
-		if (this.countAvailablePages > 0)
+		if (this.countAvailableFrames > 0)
 			throw new UnsupportedOperationException(
 					"No replacement needed if there are free spots available!");
 
@@ -185,8 +206,6 @@ public final class DemandPaging {
 
 			frame.fill(processID, pageNumber);
 			this.frames.addLast(frame);
-
-			System.out.println("\t eviction in frame " + frame.getID());
 
 		} else if (this.R.equals(ReplacementAlgorithm.RANDOM)) {
 			int randIndex = DemandPaging.getRand() % this.frames.size();
@@ -205,8 +224,11 @@ public final class DemandPaging {
 
 	}
 
+	/**
+	 * Gets a process' next word based on its current word, using the random
+	 * numbers from {@link #getRand()}.
+	 */
 	private int getNextWord(Process proc, int currWord) {
-		// Relevant after the first word
 
 		int r = DemandPaging.getRand();
 		double y = r / (Integer.MAX_VALUE + 1d);
@@ -228,6 +250,10 @@ public final class DemandPaging {
 
 	}
 
+	/**
+	 * Gets the next random number from the available feed, found in the file
+	 * listed in {@link #randomNumbersPath}.
+	 */
 	private static int getRand() {
 		if (DemandPaging.scanner.hasNextInt())
 			return DemandPaging.scanner.nextInt();
@@ -235,34 +261,36 @@ public final class DemandPaging {
 		return 0;
 	}
 
+	/**
+	 * Launches the demand-paging simulation after the processes and frames have
+	 * been initialized (see {@link DemandPaging(ReplacementAlgorithm, int, int,
+	 * int, int, int)} ).
+	 */
 	private void launchSimulation() {
-		// After processes and frames have been created, launch the simulation
 
 		int totRefs = this.processes.size() * this.N;
 
+		int i;
+		int ref;
 		int word;
 		int page;
 		Frame frame;
 		Process proc;
-		for (int i = 0; i < totRefs; i++) {
+		for (i = 0; i < totRefs; i++) {
 
 			proc = this.processes.get(i % this.processes.size());
 			word = proc.getCurrentWord();
 
-			for (int ref = 0; (ref < DemandPaging.RR_QUANTUM)
+			// Simulates the current reference for this process and calculates
+			// the next reference
+			for (ref = 0; (ref < DemandPaging.RR_QUANTUM)
 					&& (!proc.isFinished()); ref++) {
-				// Simulate the reference for this process (USE word)
-				// Calculate the next reference for this process
 
-				// map the word to a page number
-				page = word / this.P;
+				page = word / this.P; // Map the word to a page number
 				frame = this.isHit(proc.getID(), page);
 
-				System.out.println(proc.getID() + " references word " + word
-						+ " page (" + page + ")\tat time " + sysClock);
-
 				if (frame == null) {
-					if (this.countAvailablePages > 0)
+					if (this.countAvailableFrames > 0)
 						this.framePlacement(proc.getID(), page);
 
 					else
@@ -287,28 +315,85 @@ public final class DemandPaging {
 			}
 		}
 
+	}
+
+	/**
+	 * Prints a report according to the assignment's guidelines, and calculates
+	 * additional statistics.
+	 */
+	private void printReport() {
+
+		System.out.println("The machine size is " + this.M + ".");
+		System.out.println("The page size is " + this.P + ".");
+		System.out.println("The process size is " + this.S + ".");
+		System.out.println("The job mix number is " + this.J + ".");
+		System.out.println("The number of references per process is " + this.N
+				+ ".");
+		System.out.println("The replacement algorithm is " + this.R + ".");
+		System.out.println();
+
+		int totFaults = 0;
+		int totResidency = 0;
+		int totEvictions = 0;
+		boolean displayAvgResidency = true;
+
 		for (Process p : this.processes) {
-			System.out.println(p.getID() + ": " + p.getNumPageFaults());
-			System.out.println("\taverage residency: "
-					+ (p.getAvgResidencyTime()));
+			System.out.print("Process " + p.getID() + " had "
+					+ +p.getNumPageFaults() + " faults");
+
+			if (Double.isNaN(p.getAvgResidencyTime()))
+				System.out
+						.print(".\n\tWith no evictions, the average residence is undefined.\n");
+
+			else
+				System.out.print(" and " + p.getAvgResidencyTime()
+						+ " average residency.\n");
+
+			totFaults += p.getNumPageFaults();
+			totEvictions += p.getNumEvictions();
+			totResidency += p.getSumResidencyTime();
 		}
+
+		if (totResidency <= 0)
+			displayAvgResidency = false;
+
+		System.out.print("\nThe total number of faults is " + totFaults + " ");
+		if (displayAvgResidency)
+			System.out.print("and the overall average residency is "
+					+ (totResidency * 1.0 / totEvictions) + ".");
+		else
+			System.out
+					.println("\n\tWith no evictions, the overall average residence is undefined.");
 
 	}
 
 	public static void main(String[] args) {
+		
+		if(args.length != 6)
+			throw new IllegalArgumentException("Provide the following 6 arguments: M P S J N R");
 
+		int M = Integer.parseInt(args[0]);
+		int P = Integer.parseInt(args[1]);
+		int S = Integer.parseInt(args[2]);
+		int J = Integer.parseInt(args[3]);
+		int N = Integer.parseInt(args[4]);
+		String R = args[5];
+		ReplacementAlgorithm algo = null;
+		
+		if(R.equals("fifo"))
+			algo = ReplacementAlgorithm.FIFO;
+		else if(R.equals("lru"))
+			algo = ReplacementAlgorithm.LRU;
+		else if(R.equals("random"))
+			algo = ReplacementAlgorithm.RANDOM;
+		
 		try {
-			tests.Test_RANDOM.run15();
-
-			// Error:
-			// 4 references word 22 page (2)
-			// eviction in frame 7 (SHOULD BE FRAME 6)
-
+			new DemandPaging(algo, M, P, S, J, N);
+			
 		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-
+		
+		
 	}
-
 }
